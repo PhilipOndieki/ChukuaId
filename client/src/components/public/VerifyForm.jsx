@@ -112,7 +112,7 @@ export default function VerifyForm({ idNumber, onVerified, onBack }) {
         rounded-lg px-4 py-2.5">
         <span className="flex-shrink-0 w-2 h-2 rounded-full bg-green-400 animate-pulse" />
         <p className="text-sm text-green-200 font-medium">
-          ID found — please verify your identity to view details
+          ID found, please verify your identity to view details
         </p>
       </div>
 
