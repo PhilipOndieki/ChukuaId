@@ -3,17 +3,14 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../../firebase'
 import LoadingSpinner from '../shared/LoadingSpinner'
 
-/**
- * AddIdForm — form for admins to register a new uncollected ID record.
- *
- * The `centre` and `county` fields are pre-filled from the admin's own
- * Firestore record and are not editable (only Huduma Centre staff can add
- * IDs for their own centre).
- *
- * Props:
- *   adminData  — { uid, centre, county } from the admins collection
- *   onSuccess  — called after a record is successfully added
- */
+async function hashDob(dob) {
+  const encoder = new TextEncoder()
+  const data = encoder.encode(dob + 'chukuaid_salt_2026')
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
 export default function AddIdForm({ adminData, onSuccess }) {
   const initialState = {
     name: '',
@@ -55,10 +52,11 @@ export default function AddIdForm({ adminData, onSuccess }) {
     setError('')
 
     try {
+      const hashedDob = await hashDob(fields.dob)
       const idRef = doc(db, 'ids', fields.idNumber.trim())
       await setDoc(idRef, {
         name: fields.name.trim(),
-        dob: fields.dob,
+        dob: hashedDob,
         centre: adminData.centre,
         county: adminData.county,
         address: fields.address.trim(),

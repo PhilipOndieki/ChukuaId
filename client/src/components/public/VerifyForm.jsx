@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
-import { httpsCallable } from 'firebase/functions'
-import { functions } from '../../firebase'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '../../firebase'
+import { maskIdNumber } from '../../utils/maskId'
 import {
   getLockoutState,
   recordFailedAttempt,
@@ -9,23 +10,14 @@ import {
 } from '../../utils/lockout'
 import LoadingSpinner from '../shared/LoadingSpinner'
 
-/**
- * VerifyForm — Step 2 of the public search flow.
- *
- * Calls the `verifyDob` Cloud Function which compares the submitted date of
- * birth against the Firestore record WITHOUT returning the raw dob field to
- * this client.
- *
- * Security:
- *   - Max 3 attempts, then 10-minute lockout stored in localStorage.
- *   - The DOB is sent to, and compared in, the Cloud Function only.
- *   - The raw dob is never returned by the function.
- *
- * Props:
- *   idNumber           — the ID number found in Step 1
- *   onVerified(record) — called with the safe public record on success
- *   onBack()           — called when user wants to start a new search
- */
+async function hashDob(dob) {
+  const encoder = new TextEncoder()
+  const data = encoder.encode(dob + 'chukuaid_salt_2026')
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
 export default function VerifyForm({ idNumber, onVerified, onBack }) {
   const [dob, setDob] = useState('')
   const [loading, setLoading] = useState(false)
@@ -33,7 +25,6 @@ export default function VerifyForm({ idNumber, onVerified, onBack }) {
   const [lockout, setLockout] = useState({ locked: false, remainingMs: 0, attempts: 0 })
   const [countdown, setCountdown] = useState('')
   const timerRef = useRef(null)
-  const verifyDob = httpsCallable(functions, 'verifyDob')
 
   useEffect(() => {
     const state = getLockoutState(idNumber)
@@ -75,12 +66,21 @@ export default function VerifyForm({ idNumber, onVerified, onBack }) {
     setLoading(true)
 
     try {
-      const result = await verifyDob({ idNumber, dob })
-      const { verified, record } = result.data
+      const hashedInput = await hashDob(dob)
+      const docSnap = await getDoc(doc(db, 'ids', idNumber))
 
-      if (verified) {
+      if (docSnap.exists() && docSnap.data().dob === hashedInput) {
         clearLockout(idNumber)
-        onVerified(record)
+        const data = docSnap.data()
+        onVerified({
+          name: data.name,
+          centre: data.centre,
+          county: data.county,
+          address: data.address,
+          phone: data.phone,
+          hours: data.hours,
+          idMasked: maskIdNumber(idNumber),
+        })
       } else {
         const newState = recordFailedAttempt(idNumber)
         setLockout(newState)
@@ -108,7 +108,6 @@ export default function VerifyForm({ idNumber, onVerified, onBack }) {
 
   return (
     <div className="w-full max-w-md mx-auto animate-in">
-      {/* Status badge */}
       <div className="flex items-center gap-2 mb-4 bg-green-500/20 border border-green-400/40
         rounded-lg px-4 py-2.5">
         <span className="flex-shrink-0 w-2 h-2 rounded-full bg-green-400 animate-pulse" />
