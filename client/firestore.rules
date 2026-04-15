@@ -1,0 +1,81 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: check if requester is an authenticated admin
+    function isAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // -----------------------------------------------------------------------
+    // ids collection
+    // Document ID = national ID number
+    // -----------------------------------------------------------------------
+     match /ids/{idNumber} {
+      // Public read — uncollected records only (status check)
+      allow read: if resource != null
+        && resource.data.status == 'uncollected';
+
+      // Admin read — authenticated admins can read all records
+      allow read: if request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+
+      // Admin create
+      allow create: if isAdmin()
+        && request.resource.data.addedBy == request.auth.uid
+        && request.resource.data.keys().hasAll([
+            'name', 'dob', 'centre', 'county', 'address',
+            'phone', 'hours', 'status', 'addedBy', 'addedAt'
+          ])
+        && request.resource.data.status == 'uncollected';
+
+      // Admin update — mark as collected or edit metadata
+      allow update: if isAdmin()
+        && resource.data.addedBy == request.auth.uid
+        && (
+            (request.resource.data.status == 'collected'
+              && request.resource.data.keys().hasAll(['collectedAt']))
+            ||
+            request.resource.data.status == 'uncollected'
+          );
+
+      // Delete is permanently forbidden for everyone
+      allow delete: if false;
+    }
+    // -----------------------------------------------------------------------
+    // admins collection
+    // Document ID = Firebase Auth UID
+    // -----------------------------------------------------------------------
+    match /admins/{uid} {
+      // Authenticated users may only read their own admin document
+      allow read: if request.auth != null && request.auth.uid == uid;
+
+      // No public writes — admins are created via Firebase Console only
+      allow write: if false;
+    }
+
+    // -----------------------------------------------------------------------
+    // subscribers collection
+    // Document ID = national ID number
+    // -----------------------------------------------------------------------
+    match /subscribers/{idNumber} {
+      // Anyone may subscribe (unauthenticated users)
+      allow create: if request.resource.data.keys().hasAll(['idNumber', 'contacts', 'createdAt'])
+        && request.resource.data.idNumber is string
+        && request.resource.data.contacts is list
+        && request.resource.data.contacts.size() > 0
+        && request.resource.data.contacts.size() <= 5;
+
+      // Allow updating the contacts array (appending new subscriber)
+      allow update: if request.resource.data.contacts is list
+        && request.resource.data.contacts.size() <= 50;
+
+      // Only authenticated admins may read subscriber lists
+      allow read: if isAdmin();
+
+      // No deletes
+      allow delete: if false;
+    }
+  }
+}
