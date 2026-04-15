@@ -1,6 +1,6 @@
 # Chukua ID
 ![chukua id home](image.png)
-[**Live App**](https://nairobialert2.vercel.app) 
+[**Live App**](https://chukuaid.vercel.app) 
 A civic web platform that helps Kenyan citizens locate their uncollected national ID cards held at Huduma Centres across Kenya. Over 490,000 ID cards remain uncollected nationwide. Chukua ID bridges the gap between citizens and government offices through a simple, privacy-first search interface.
 ---
 
