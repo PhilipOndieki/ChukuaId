@@ -19,6 +19,7 @@ export default function AddIdForm({ adminData, onSuccess }) {
     address: '',
     phone: '',
     hours: '',
+    county: adminData.county || ''
   }
 
   const [fields, setFields] = useState(initialState)
@@ -40,6 +41,7 @@ export default function AddIdForm({ adminData, onSuccess }) {
     if (!fields.address.trim()) return 'Physical address is required.'
     if (!fields.phone.trim()) return 'Phone number is required.'
     if (!fields.hours.trim()) return 'Operating hours are required.'
+    if (!fields.county) return 'County is required.'
     return ''
   }
 
@@ -58,7 +60,7 @@ export default function AddIdForm({ adminData, onSuccess }) {
         name: fields.name.trim(),
         dob: hashedDob,
         centre: adminData.centre,
-        county: adminData.county,
+        county: fields.county,
         address: fields.address.trim(),
         phone: fields.phone.trim(),
         hours: fields.hours.trim(),
@@ -156,12 +158,24 @@ export default function AddIdForm({ adminData, onSuccess }) {
             </div>
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-              County
+            <label htmlFor="county" className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              County<span className="text-red-500 ml-0.5">*</span>
             </label>
-            <div className="h-10 px-3 rounded-lg bg-gray-100 border border-gray-200 flex items-center">
-              <span className="text-sm text-gray-500">{adminData.county}</span>
-            </div>
+            <select
+              id="county"
+              name="county"
+              value={fields.county}
+              onChange={handleChange}
+              disabled={loading}
+              className="h-10 px-3 rounded-lg border border-gray-200 bg-white text-gray-900 text-sm
+                focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none
+                disabled:opacity-50 transition-colors"
+            >
+              <option value="">Select county</option>
+              {['Baringo','Bomet','Bungoma','Busia','Elgeyo-Marakwet','Embu','Garissa','Homa Bay','Isiolo','Kajiado','Kakamega','Kericho','Kiambu','Kilifi','Kirinyaga','Kisii','Kisumu','Kitui','Kwale','Laikipia','Lamu','Machakos','Makueni','Mandera','Marsabit','Meru','Migori','Mombasa',"Murang'a",'Nairobi','Nakuru','Nandi','Narok','Nyamira','Nyandarua','Nyeri','Samburu','Siaya','Taita-Taveta','Tana River','Tharaka-Nithi','Trans Nzoia','Turkana','Uasin Gishu','Vihiga','Wajir','West Pokot'].map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
           </div>
           <FormField
             id="phone"
