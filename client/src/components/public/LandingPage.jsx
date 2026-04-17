@@ -49,7 +49,7 @@ export default function LandingPage({ onAdminClick }) {
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
-          backgroundImage: `url('https://images.unsplash.com/photo-1587474260584-136574528ed5?w=1600&q=80')`,
+          backgroundImage: `url('/maasai.webp')`,
         }}
         role="img"
         aria-label="Interior of a Kenyan government office"
@@ -60,7 +60,7 @@ export default function LandingPage({ onAdminClick }) {
 
       {/* Content */}
       <div
-        className="relative z-10 min-h-screen flex flex-col items-center justify-center
+        className="relative z-10 min-h-screen flex flex-col items-center justify-start
           px-4 py-16 sm:px-6"
       >
         {/* Logo + tagline */}
